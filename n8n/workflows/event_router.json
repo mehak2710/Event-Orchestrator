@@ -1,0 +1,442 @@
+{
+  "name": "event_router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "events",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        240
+      ],
+      "webhookId": "b2000000-0000-4000-8000-000000000001"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst data = body.data || {};\nreturn [{ json: { event_id: body.id, type: body.type, data, fail: data.simulate_failure === true } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Prepare Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.fail }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Simulate Failure?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"error\", \"event_id\": \"{{ $json.event_id }}\" }",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Respond 500",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        700,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "r1",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "order.created",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "order.created"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "r2",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "user.signup",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "user.signup"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Route by Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        700,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst e = $input.first().json;\nconst amount = e.data.amount !== undefined ? e.data.amount : 'n/a';\nconst text = `:package: New order ${esc(e.event_id)} (amount: ${esc(amount)})`;\nreturn [{ json: { ...e, slack_payload: {\n  text,\n  blocks: [\n    { type: 'section', text: { type: 'mrkdwn', text: `:package: *New order*\\nEvent \\`${esc(e.event_id)}\\` | amount *${esc(amount)}*` } },\n    { type: 'context', elements: [{ type: 'mrkdwn', text: `${esc(e.type)} | processed by Event Orchestrator` }] }\n  ]\n} } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "Handle Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst e = $input.first().json;\nconst text = `:bust_in_silhouette: New signup event ${esc(e.event_id)}`;\nreturn [{ json: { ...e, slack_payload: {\n  text,\n  blocks: [\n    { type: 'section', text: { type: 'mrkdwn', text: `:bust_in_silhouette: *New signup*\\nEvent \\`${esc(e.event_id)}\\`` } },\n    { type: 'context', elements: [{ type: 'mrkdwn', text: `${esc(e.type)} | processed by Event Orchestrator` }] }\n  ]\n} } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "Handle Signup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...$input.first().json, result: 'no handler for this type' } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "Unhandled Type",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\", \"event_id\": \"{{ $('Prepare Event').first().json.event_id }}\", \"result\": \"{{ $('Prepare Event').first().json.type }} handled by n8n\" }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000009",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1480,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.slack_payload) }}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000010",
+      "name": "Send to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dead-letter",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000020",
+      "name": "Webhook: Dead Letter",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        860
+      ],
+      "webhookId": "b2000000-0000-4000-8000-000000000002"
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst b = $input.first().json.body || {};\nconst text = `:rotating_light: Event dead-lettered: ${esc(b.event_id)}`;\nreturn [{ json: { slack_payload: {\n  text,\n  blocks: [\n    { type: 'section', text: { type: 'mrkdwn', text: `:rotating_light: *Event dead-lettered*\\nEvent \\`${esc(b.event_id)}\\` (${esc(b.type)})\\nReason: *${esc(b.reason)}* after ${esc(b.attempts)} attempt(s)` } },\n    { type: 'section', text: { type: 'mrkdwn', text: `Last error: \\`${esc(b.error)}\\`` } },\n    { type: 'context', elements: [{ type: 'mrkdwn', text: 'Replay it from the dashboard: http://localhost:8501' }] }\n  ]\n} } }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000021",
+      "name": "Build Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        860
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.slack_payload) }}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000022",
+      "name": "Send Dead-Letter Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        860
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1. Event router\nWebhook, then route by type, then a Slack message, then respond 200.\nIf anything fails, n8n answers 500 so the worker retries.",
+        "height": 760,
+        "width": 1740
+      },
+      "id": "a1000000-0000-4000-8000-000000000030",
+      "name": "Note: Router",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. Dead-letter alert\nThe worker calls this when an event runs out of retries. It posts a Slack alert.",
+        "height": 260,
+        "width": 800
+      },
+      "id": "a1000000-0000-4000-8000-000000000031",
+      "name": "Note: Alerts",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        760
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Event": {
+      "main": [
+        [
+          {
+            "node": "Simulate Failure?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simulate Failure?": {
+      "main": [
+        [
+          {
+            "node": "Respond 500",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route by Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Type": {
+      "main": [
+        [
+          {
+            "node": "Handle Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Signup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unhandled Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Order": {
+      "main": [
+        [
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Signup": {
+      "main": [
+        [
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unhandled Type": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Slack": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Dead Letter": {
+      "main": [
+        [
+          {
+            "node": "Build Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Dead-Letter Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

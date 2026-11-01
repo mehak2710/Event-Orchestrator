@@ -1,0 +1,89 @@
+services:
+  redis:
+    restart: unless-stopped
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  n8n:
+    restart: unless-stopped
+    image: n8nio/n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  api:
+    restart: unless-stopped
+    build: .
+    command: uvicorn app.api:app --host 0.0.0.0 --port 8000
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - N8N_BASE_URL=http://n8n:5678
+      - DB_PATH=/data/audit.db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    restart: unless-stopped
+    build: .
+    command: python -m app.worker
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/events
+      - N8N_ALERT_URL=http://n8n:5678/webhook/dead-letter
+      - DB_PATH=/data/audit.db
+    volumes:
+      - ./data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      n8n:
+        condition: service_started
+
+  listener:
+    build: .
+    restart: unless-stopped
+    command: python -m app.listener
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  dashboard:
+    restart: unless-stopped
+    build: .
+    command: streamlit run dashboard/streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+    env_file: .env
+    environment:
+      - API_URL=http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+
+volumes:
+  redis_data:
+  n8n_data:
