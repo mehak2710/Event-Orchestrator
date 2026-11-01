@@ -42,7 +42,6 @@ Event Orchestrator adds that missing layer in front of n8n:
 - [Try it](#try-it)
 - [Project structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
-- [Future enhancements](#future-enhancements)
 - [Author](#author)
 
 ## Why this exists
@@ -142,7 +141,6 @@ The n8n workflow, as imported from `n8n/workflows/event_router.json`:
 
 ## Tech stack
 
-Everything is free and open source.
 
 | Layer | Tool | Why |
 |---|---|---|
@@ -217,7 +215,6 @@ Leave everything else as it is. These optional settings can stay empty:
 | `N8N_API_KEY` | empty | Optional: shows n8n execution history on the dashboard |
 | `MAX_ATTEMPTS` | `5` | Attempts before an event is dead-lettered |
 
-`.env` is gitignored, so your secrets stay out of the repository. After editing it later, run `docker compose up -d` so the containers pick up the change.
 
 ### 3. Check Slack works on its own
 
@@ -233,7 +230,7 @@ pip install -r requirements-dev.txt
 python -m scripts.test_slack
 ```
 
-A test message should appear in your Slack channel. If it does not, the script prints what Slack answered and what it usually means.
+A test message should appear in your Slack channel.
 
 ### 4. Start the stack
 
@@ -244,15 +241,11 @@ docker compose up -d --build
 docker compose ps
 ```
 
-The first build takes a few minutes. You should see six services running: redis, n8n, api, listener, worker, and dashboard.
-
 ### 5. Set up n8n (one time)
 
 1. Open http://localhost:5678 and create your local owner account.
 2. Go to **Workflows > Import from file** and choose `n8n/workflows/event_router.json`.
 3. Click **Publish**. The worker calls the production webhook URLs, which only work once the workflow is published.
-
-If n8n says the `events` path is already in use, an older workflow with that path is still published. Unpublish or archive it first.
 
 ### 6. Open the services
 
@@ -356,8 +349,6 @@ event-orchestrator/
 ├── requirements.txt
 └── requirements-dev.txt
 ```
-
-You create `.env` yourself from `.env.example`. It is gitignored.
 
 ## Troubleshooting
 
