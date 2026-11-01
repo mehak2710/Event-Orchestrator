@@ -109,7 +109,9 @@ Delivery is **at-least-once, not exactly-once**. Retries, redelivery, and crash 
 
 The n8n workflow, as imported from `n8n/workflows/event_router.json`:
 
-![n8n workflow](docs/event_router.png)
+![n8n workflow: event router](docs/n8n%20workflows/event%20router%20n8n%20workflow%20.png)
+
+![n8n workflow: dead-letter alert](docs/n8n%20workflows/dead%20letter%20n8n%20workflow%20.png)
 
 ## Tech stack
 
