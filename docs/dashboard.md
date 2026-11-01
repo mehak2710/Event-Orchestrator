@@ -5,6 +5,7 @@ The dashboard is a live, read-mostly view of Event Orchestrator, built with Stre
 **Open it at http://localhost:8501** after `docker compose up -d`.
 
 ![Event Orchestrator dashboard](dashboard/Event%20Orchestrator%20dashboard%201.png)
+![Dead letter queue](dashboard/Event%20Orchestrator%20dashboard%20-%20dead%20letter%20queue.png)
 
 The page refreshes itself every 3 seconds, so you can leave it open while sending test events. There is no refresh button.
 
