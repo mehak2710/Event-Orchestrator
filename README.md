@@ -1,8 +1,35 @@
 # Event Orchestrator
 ### Event-Triggered Automation Agent
 
-Event Orchestrator receives signed webhooks, runs matching n8n workflows that post to Slack, and guarantees the delivery: every event is processed idempotently, temporary failures are retried automatically, and events that keep failing are kept in a dead letter queue, announced in Slack, and can be replayed with one click.
+**Reliable event processing for n8n.** Event Orchestrator receives signed webhooks, runs matching n8n workflows that post to Slack, and makes sure no event is lost or processed twice.
 
+![Event Orchestrator dashboard](docs/dashboard/Event%20Orchestrator%20dashboard%201.png)
+![Dead letter queue with replay](docs/dashboard/Event%20Orchestrator%20dashboard%20-%20dead%20letter%20queue.png)
+
+## Overview
+
+Webhook-driven automation breaks in predictable ways. Senders redeliver the same event, so a workflow runs twice. A downstream service goes down for a minute, and the event is lost. A workflow fails for good, and nobody notices for days. n8n is excellent at connecting services, but it does not decide what should happen in these cases.
+
+Event Orchestrator adds that missing layer in front of n8n:
+
+- **Duplicates are blocked.** Every event ID is checked at the API and claimed atomically by the worker, so a repeat delivery never repeats its side effects.
+- **Temporary failures are retried.** The worker retries with exponential backoff and jitter, and treats permanent errors differently from temporary ones.
+- **Failures are never silent.** An event that runs out of retries is saved in a dead letter queue with its reason, attempt count, last error, and payload. A Slack alert goes out, and the event can be replayed with one click once the cause is fixed.
+- **Everything is visible.** A live dashboard shows what was received, retried, and dead-lettered, and a SQLite audit log keeps the history.
+
+**n8n runs the workflows and talks to Slack. A custom Python core guarantees reliability.** The core is a rule-based reliability layer, not an LLM agent.
+
+## Highlights
+
+- Signed webhooks verified with HMAC-SHA256, plus strict payload validation
+- Two-layer idempotency, using Redis `SET NX EX` and Redis Streams consumer groups
+- An n8n workflow with two lanes: an event router that posts formatted Slack messages, and a dead-letter alert
+- A Slack alert fallback that posts directly when n8n itself is down
+- Crash recovery: unacknowledged messages are reclaimed by another worker
+- A Streamlit dashboard with live counters, n8n health, recent events, and the dead letter queue with replay
+- 42 automated tests, and a Docker Compose setup that starts six services with one command
+
+## Contents
 
 ## Contents
 
