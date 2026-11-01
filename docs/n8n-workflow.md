@@ -2,7 +2,7 @@
 
 Event Orchestrator uses one n8n workflow, `event_router`, with two lanes. The Python worker sends events to it, and it turns them into Slack messages. The importable file is [`n8n/workflows/event_router.json`](../n8n/workflows/event_router.json).
 
-![n8n workflow](event_router.png)
+![n8n workflow: event router](n8n%20workflows/event%20router%20n8n%20workflow%20.png)
 
 | Lane | Production URL | Purpose |
 |---|---|---|
@@ -74,6 +74,8 @@ Both handler nodes build a payload with a plain `text` fallback (used in notific
 Event fields are escaped (`&`, `<`, `>` become HTML entities) before they go into a message. Without this, an event ID such as `<!channel>` would trigger a channel-wide notification.
 
 ## Lane 2: dead-letter alert
+
+![n8n workflow: dead-letter alert](n8n%20workflows/dead%20letter%20n8n%20workflow%20.png)
 
 ```mermaid
 flowchart LR
